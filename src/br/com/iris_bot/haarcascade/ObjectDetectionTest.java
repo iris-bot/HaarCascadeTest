@@ -1,8 +1,10 @@
 package br.com.iris_bot.haarcascade;
 
-import static com.googlecode.javacv.cpp.opencv_core.*;
-import static com.googlecode.javacv.cpp.opencv_highgui.*;
-import static com.googlecode.javacv.cpp.opencv_objdetect.*;
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+import static org.bytedeco.javacpp.opencv_imgcodecs.*;
+import static org.bytedeco.javacpp.opencv_highgui.*;
+import static org.bytedeco.javacpp.opencv_objdetect.*;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -15,19 +17,21 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.HashMap;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
+
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter;
 
 public class ObjectDetectionTest {
 
@@ -48,7 +52,7 @@ public class ObjectDetectionTest {
 	
 	private File xml = new File("res/haarcascade_frontalface_alt.xml");
 	private File img = new File("test/test1.jpg");
-	private ImagePane image = new ImagePane(cvLoadImage(img.getAbsolutePath()).getBufferedImage());
+	private ImagePane image = new ImagePane(cvLoadImage(img.getAbsolutePath()));
 	private JComboBox<HaarModel> model = new JComboBox<HaarModel>(models);
 	private JSlider scale = new JSlider(11, 80);
 	private JSlider neighbors = new JSlider(-1, 10);
@@ -63,7 +67,12 @@ public class ObjectDetectionTest {
 	private static boolean processing = false;
 	
 	public static void main(String[] args) {
-
+		PlatformDetection.detectPlatform();
+		buildUI();
+	}
+		
+	public static void buildUI() {
+		
 		final JFrame frm = new JFrame("Haar Cascade Object Detection Test");
 		frm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frm.setMinimumSize(new Dimension(700, 700));
@@ -109,9 +118,9 @@ public class ObjectDetectionTest {
 		});
 
 		cd.scale.setValue(13);
-		cd.neighbors.setValue(2);
-		cd.minSize.setValue(80);
-		cd.maxSize.setValue(160);
+		cd.neighbors.setValue(4);
+		cd.minSize.setValue(15);
+		cd.maxSize.setValue(30);
 		
 		cd.model.addActionListener(new ActionListener() {
 			@Override
@@ -171,7 +180,7 @@ public class ObjectDetectionTest {
 					int max = maxSize.getValue();
 					int mdl = ((HaarModel)model.getSelectedItem()).value;
 					props.setText("scale: "+nf.format(scl)+" | neighbors: "+nbr+" | size: "+min+"/"+max);
-					image.setImage(detect(xml, cvLoadImage(img.getAbsolutePath()), scl, nbr, min, max, mdl).getBufferedImage());
+					image.setImage(detect(xml, cvLoadImage(img.getAbsolutePath()), scl, nbr, min, max, mdl));
 					setProcessing(false);
 				}
 			}
@@ -234,34 +243,28 @@ public class ObjectDetectionTest {
 	}
 
 	public static IplImage detect(File xml, IplImage src, double scale, int neighbors, int min, int max, int model) {
-
 		CvHaarClassifierCascade cascade = new CvHaarClassifierCascade(cvLoad(xml.getAbsolutePath()));
 		CvMemStorage storage = CvMemStorage.create();
 		CvSeq sign = cvHaarDetectObjects(src, cascade, storage, scale, neighbors, model, cvSize(min, min), cvSize(max, max));
-
 		cvClearMemStorage(storage);
-
 		int total_caps = sign.total();
-		System.out.println("Found: "+total_caps);
 
+		System.out.println("Found: "+total_caps);
+		
 		for (int i = 0; i < total_caps; i++) {
 			CvRect r = new CvRect(cvGetSeqElem(sign, i));
-			cvRectangle(src, cvPoint(r.x(), r.y()), cvPoint(r.width() + r.x(), r.height() + r.y()), CvScalar.RED, 2,
-					CV_AA, 0);
-
+			cvRectangle(src, cvPoint(r.x(), r.y()), cvPoint(r.width() + r.x(), r.height() + r.y()), CvScalar.RED, 2, CV_AA, 0);
+			r.close();
 		}
-
-		// cvShowImage("Result", src);
-		// cvWaitKey(0);
 		return src;
-
 	}
 
 	private static class ImagePane extends JPanel {
+		private static final long serialVersionUID = 1L;
 		private BufferedImage img;
 
-		private ImagePane(BufferedImage img) {
-			this.img = img;
+		private ImagePane(IplImage img) {
+			this.img = toBufferedImage(img);
 		}
 
 		@Override
@@ -272,8 +275,8 @@ public class ObjectDetectionTest {
 			super.paintComponents(g);
 		}
 
-		public void setImage(BufferedImage img) {
-			this.img = img;
+		public void setImage(IplImage img) {
+			this.img = toBufferedImage(img);
 			repaint();
 		}
 
@@ -324,4 +327,13 @@ public class ObjectDetectionTest {
 			return key;
 		}
 	}
+	
+	public static BufferedImage toBufferedImage(IplImage src) {
+	    OpenCVFrameConverter.ToIplImage grabberConverter = new OpenCVFrameConverter.ToIplImage();
+	    Java2DFrameConverter paintConverter = new Java2DFrameConverter();
+	    Frame frame = grabberConverter.convert(src);
+	    return paintConverter.getBufferedImage(frame,1);
+	}
+	
+
 }
