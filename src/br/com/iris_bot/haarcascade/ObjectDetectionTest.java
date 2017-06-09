@@ -1,4 +1,4 @@
-package br.com.iris_bot.haarcascade.dolcegusto;
+package br.com.iris_bot.haarcascade;
 
 import static com.googlecode.javacv.cpp.opencv_core.*;
 import static com.googlecode.javacv.cpp.opencv_highgui.*;
@@ -29,7 +29,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
 
-public class CapsuleDetection {
+public class ObjectDetectionTest {
 
 	private static final String[] imgFileExtensions = new String[] { "bmp", "jpg", "png", "jpeg", "gif" };
 	private static final String[] xmlFileExtensions = new String[] { "xml" };
@@ -46,7 +46,7 @@ public class CapsuleDetection {
 	
 	private static JFileChooser fc = new JFileChooser();
 	
-	private File xml = new File("res/capsdetector.xml");
+	private File xml = new File("res/haarcascade_frontalface_alt.xml");
 	private File img = new File("test/test1.jpg");
 	private ImagePane image = new ImagePane(cvLoadImage(img.getAbsolutePath()).getBufferedImage());
 	private JComboBox<HaarModel> model = new JComboBox<HaarModel>(models);
@@ -64,10 +64,10 @@ public class CapsuleDetection {
 	
 	public static void main(String[] args) {
 
-		final JFrame frm = new JFrame();
+		final JFrame frm = new JFrame("Haar Cascade Object Detection Test");
 		frm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frm.setMinimumSize(new Dimension(700, 700));
-		final CapsuleDetection cd = new CapsuleDetection();
+		final ObjectDetectionTest cd = new ObjectDetectionTest();
 		cd.setup(cd.scale);
 		cd.setup(cd.neighbors);
 		
